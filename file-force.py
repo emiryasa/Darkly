@@ -88,8 +88,8 @@ def fetch_flag(url: str, min_length: int) -> str | None:
     return None
 
 
-def crawl_hidden(base_url: str, min_length: int) -> str | None:
-    """`.hidden` ağacında README arar, flag bulursa döner."""
+def crawl_hidden(base_url: str, min_length: int) -> tuple[str, str] | None:
+    """`.hidden` ağacında README arar, flag bulursa (flag, url) tuple'ı döner."""
     stack: List[str] = []
     seen: Set[str] = set()
 
@@ -116,7 +116,7 @@ def crawl_hidden(base_url: str, min_length: int) -> str | None:
                 print(f"[+] README bulundu: {absolute}")
                 flag = fetch_flag(absolute, min_length)
                 if flag:
-                    return flag
+                    return (flag, absolute)
             elif is_directory(href):
                 stack.append(absolute)
 
@@ -148,9 +148,11 @@ def main() -> int:
     print(f"[*] Taramaya başlanıyor: {args.base_url}")
     print(f"[*] Minimum flag uzunluğu: {min_length}")
 
-    flag = crawl_hidden(args.base_url, min_length)
-    if flag:
+    result = crawl_hidden(args.base_url, min_length)
+    if result:
+        flag, file_url = result
         print("\n[!] FLAG BULUNDU!")
+        print(f"    Dosya yolu: {file_url}")
         print(f"    Flag: {flag}")
         print("[-] Brute force işlemini durdurabilirsiniz.")
         return 0
