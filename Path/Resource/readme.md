@@ -1,0 +1,12 @@
+Uygulamadaki sayfa parametresini incelerken, bu parametrenin sunucu üzerinde hangi dosyanın okunacağını doğrudan belirlediğini fark ettik. Herhangi bir doğrulama, filtreleme veya path normalizasyonu olmadığı için parametreye verilen değerler sunucu tarafından olduğu gibi işleniyor ve sonuç HTML çıktısına yansıtılıyordu. Bu durumu test etmek için parametreyi farklı directory traversal denemeleriyle manipüle ettik ve deneme–yanılma yöntemiyle sistemdeki gerçek dosya yollarını keşfetmeye başladık. Sonuç olarak, ?page=../../../../../../../etc/passwd şeklindeki bir isteğin sunucu tarafından başarıyla işlenerek /etc/passwd dosya içeriğinin HTML çıktısına gömüldüğünü gördük. Bu noktada zafiyetin tam anlamıyla bir LFI / path traversal olduğunu doğrulamış olduk.
+Sunucunun döndürdüğü çıktıda, kullanıcı listesinin doğru şekilde göründüğünü fark ettikten sonra aynı tekniği kullanarak flag’in saklandığı dosya yolunu da deneme-yanılma ile bulduk. Flag dosyası okunabilir durumdaydı ve içeriği HTML çıktısına dahil edildi. Böylece yalnızca dosya dahil etme zafiyeti üzerinden ilerleyerek, sisteme herhangi bir ek komut enjekte etmeden veya başka bir endpoint kullanmadan flag’i elde etmiş olduk. Yani tamamen kullanıcı kontrolündeki “page” parametresinin filtrelenmemesi nedeniyle, sistem dosyalarını okuyarak ve çıkan uyarı/çıktıları takip ederek flag’e ulaştık.
+
+Çözüm
+
+Bu tür bir zafiyet, kullanıcıdan gelen dosya yolu girdisinin hiçbir doğrulama yapılmadan doğrudan dosya okumada kullanılmasından kaynaklanır. Bunu engellemek için:
+Kullanıcıdan alınan dosya yolları asla doğrudan kullanılmamalı, bunun yerine yalnızca belirli dosya kimliklerinin bulunduğu bir allowlist yapısı kullanılmalıdır.
+Her dosya erişimi öncesinde path canonicalization yapılmalı; ../, URL encoded traversal dizileri ve benzeri kaçış sekansları tamamen reddedilmelidir.
+Uygulama, erişilebilecek dosyaları yalnızca belirli bir dizinle sınırlandırmalı ve path bu dizinin dışına çıkarsa işlem otomatik olarak engellenmelidir.
+Web uygulaması least privilege ilkesine uygun şekilde çalışmalı; gereksiz sistem dosyalarına okuma izinleri verilmemelidir.
+Dosya erişimlerinde, özellikle şüpheli veya uzun traversal girişimlerinde loglama ve uyarı mekanizmaları devreye girmelidir.
+Hassas dosyalar (config, key, credential içeren dosyalar) web servis kullanıcısı tarafından erişilemeyecek şekilde farklı dizinlerde ve sıkı izinlerle tutulmalıdır.

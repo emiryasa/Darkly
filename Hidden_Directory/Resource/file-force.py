@@ -11,13 +11,10 @@ from urllib.parse import urljoin
 
 import requests
 
-# Varsayılan hedef (Darkly)
-DEFAULT_BASE_URL = "http://192.168.75.128/.hidden/"
+DEFAULT_BASE_URL = "http://x.x.x.x/.hidden/"
 
-# Flag olarak değerlendirilecek minimum uzunluk
 MIN_FLAG_LENGTH = 20
 
-# README dosya isimleri
 README_CANDIDATES = ("readme", "readme.txt", "readme.md")
 
 
